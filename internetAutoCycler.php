@@ -1,5 +1,5 @@
 <?php
-/*
+/**
  * The purpose of this script is to check if we can reach public dns servers via a ping.
  * If all ping attempts fail, we use an expect script to power cycle the group 1 outlets.
  * 
@@ -19,33 +19,21 @@
  * 
  * example crontab entry: * * * * * /usr/bin/php /path/to/script/internetAutoCycler.php > /dev/null 2>&1
  */
-exitIfRunning();
 
-//Public DNS Servers
-$dns_servers = [
-    '8.8.8.8',          //Google
-    '1.1.1.1',          //Cloudflare
-    '75.75.75.75',      //Comcast
-    '198.101.242.72',   //Alternate DNS
-    '216.146.35.35',    //Dyn
-    '64.6.64.6'         //Verisign
-];
-
-$netbooter_ip = '';
-$telnet_port = '';
-$username = '';
-$password = '';
+$script_ini = __DIR__ . DIRECTORY_SEPARATOR . 'script_config.ini';
+$script_config = parse_ini_file($script_ini, TRUE, INI_SCANNER_RAW);
+exitIfRunning($script_config);
 $telnet_handler = __DIR__ . DIRECTORY_SEPARATOR . 'toggleNetbooterOutlets.tcl';
 
-foreach ($dns_servers as $ip) {
-    if (pingchecker($ip) !== FALSE) {
+foreach ($script_config['dns_servers'] as $ip) {
+    if (pingchecker($ip, $script_config) !== FALSE) {
         //If one server responds, clearly the internet is working so exit!
         exit();
     }
 }
 
 //If we haven't exited by this point, then let's powercycle the Netbooter outlets!
-$base_cmd = '/usr/bin/expect ' . $telnet_handler . ' ' . $netbooter_ip . ' ' . $telnet_port . ' ' . $username . ' ' . $password;
+$base_cmd = $script_config['binaries']['expect'] . ' ' . $telnet_handler . ' ' . $script_config['netbooter']['ip'] . ' ' . $script_config['netbooter']['port'] . ' ' . $script_config['netbooter']['username'] . ' ' . $script_config['netbooter']['password'];
 
 //Turn Off Grouped Outlets Via Telnet expect script
 $shell_cmd = $base_cmd . ' OFF';
@@ -56,28 +44,32 @@ sleep(30);
 $shell_cmd = $base_cmd . ' ON';
 exec($shell_cmd);
 
-/*
+/**
  * Checks if the current script is already running, if so we exit.
+ * 
+ * @param array $script_config - The script configuration array
  */
-function exitIfRunning()
+function exitIfRunning($script_config)
 {
+    $grep = $script_config['binaries']['grep'];
     $file_name = str_replace(__DIR__ . DIRECTORY_SEPARATOR, '', __FILE__);
-    $results = shell_exec("ps -ef | grep '" . $file_name . "' | grep -v 'grep'");
+    $results = shell_exec($script_config['binaries']['ps'] . " -ef | " . $grep . " '" . $file_name . "' | " . $grep . " -v 'grep' | " . $grep . " -v '/bin/sh -c");
     $result_array = explode("\n", trim($results));
     if (count($result_array) > 1) {
         exit();
     }
 }
 
-/*
+/**
  * Takes an IP address and checks to see if the host responds
  *  
- * @string $ip - The IP address
- * return boolean
+ * @param string $ip - The IP address
+ * @param array $script_config - The script configuration array
+ * @return boolean
  */
-function pingChecker($ip)
+function pingChecker($ip, $script_config)
 {
-    $shell_cmd = 'ping -c 5 ' . $ip;
+    $shell_cmd =  $script_config['binaries']['ping'] . ' -c 5 ' . $ip;
     $raw_result = shell_exec($shell_cmd);
     $result_array = explode("\n", $raw_result);
     $result = extractPingResult($result_array);
@@ -94,12 +86,12 @@ function pingChecker($ip)
     return $result;
 }
 
-/*
+/**
  * Takes the raw data from the Linux command line ping utility and returns
  * the summary line.
  * 
- * @string $result_array - The full ping result from Linux.
- * return FALSE || string
+ * @param string $result_array - The full ping result from Linux.
+ * @return boolean (false) || string
  */
 function extractPingResult($result_array)
 {
