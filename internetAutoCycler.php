@@ -13,8 +13,9 @@
  * Setup:
  * Ensure the requirements are met
  * Clone this git repo
- * Change the variables in the script to your netbooter's local IP address, telnet port, username (default is admin), and password.
- * (Optional) Change the $dns_servers array to any ip address of your choosing
+ * Fill out the script_config.ini with your Netbooters information
+ * (Optional) Change the dns_servers in the script_config.ini to any ip address of your choosing
+ * (Optional) Change the binaries file locations in the script_config.ini if the binaries are in a diff location on your distro
  * Make the internetAutoCycler script run via crontab (once a minute should be fine)
  * 
  * example crontab entry: * * * * * /usr/bin/php /path/to/script/internetAutoCycler.php > /dev/null 2>&1
@@ -53,7 +54,7 @@ function exitIfRunning($script_config)
 {
     $grep = $script_config['binaries']['grep'];
     $file_name = str_replace(__DIR__ . DIRECTORY_SEPARATOR, '', __FILE__);
-    $results = shell_exec($script_config['binaries']['ps'] . " -ef | " . $grep . " '" . $file_name . "' | " . $grep . " -v 'grep' | " . $grep . " -v '/bin/sh -c");
+    $results = shell_exec($script_config['binaries']['ps'] . " -ef | " . $grep . " '" . $file_name . "' | " . $grep . " -v 'grep' | " . $grep . " -v '/bin/sh -c'");
     $result_array = explode("\n", trim($results));
     if (count($result_array) > 1) {
         exit();
