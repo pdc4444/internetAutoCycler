@@ -17,4 +17,4 @@ Setup:
 * Make the internetAutoCycler script run via crontab (once a minute should be fine)
  
 example crontab entry: 
-* * * * * /usr/bin/php /path/to/script/internetAutoCycler.php > /dev/null 2>&1
+"* * * * * /usr/bin/php /path/to/script/internetAutoCycler.php > /dev/null 2>&1"
