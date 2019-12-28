@@ -1,7 +1,8 @@
 # internetAutoCycler
 The purpose of this script is to check if we can reach public dns servers via a ping.
 
-If all ping attempts fail, we use an expect script to power cycle the group 1 outlets. 
+If all ping attempts fail, we use an expect script to power cycle the group 1 outlets.
+
 Requirements:
 * Linux based OS
 * command line php
